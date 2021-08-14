@@ -6,21 +6,21 @@ import requests
 import geojson
 import webbrowser
 
-def get_parcelles_file(code_departement, code_ville, dir='.'):
+def get_parcelles_file(code_departement, code_ville, parcelles_dir="./data/json/"):
     filename = 'cadastre-{ville}-parcelles.json'.format(ville=code_ville)
-    file = '{dir}/{file}'.format(dir=dir, file=filename)
+    file = '{dir}/{file}'.format(dir=parcelles_dir, file=filename)
     return file
 
-def parcelles_file_exist(code_departement, code_ville, dir='.'):
-    file = get_parcelles_file(code_departement, code_ville, dir)
+def parcelles_file_exist(code_departement, code_ville, parcelles_dir="./data/json/"):
+    file = get_parcelles_file(code_departement, code_ville, parcelles_dir)
     return os.path.isfile(file)
 
-def download_parcelles_file(code_departement, code_ville, output_dir='.'):
+def download_parcelles_file(code_departement, code_ville, parcelles_dir="./data/json/"):
     # Create dir if needed
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    Path(parcelles_dir).mkdir(parents=True, exist_ok=True)
     
     filename = 'cadastre-{ville}-parcelles.json'.format(ville=code_ville)
-    file = '{dir}/{file}'.format(dir=output_dir, file=filename)
+    file = '{dir}/{file}'.format(dir=parcelles_dir, file=filename)
     address='https://cadastre.data.gouv.fr/data/etalab-cadastre/latest/geojson/communes/{dpt}/{ville}/{file}.gz'
     address=address.format(dpt=code_departement, ville=code_ville, file=filename)
 
@@ -50,7 +50,7 @@ def get_code_ville(departement, ville):
     
     return data[0]['code']
 
-def get_parcelles(departement, ville, parcelles_dir):
+def get_parcelles(departement, ville, parcelles_dir="./data/json/"):
     ville_insee = get_code_ville(departement, ville)
 
     if not parcelles_file_exist(departement, ville_insee, parcelles_dir):
@@ -63,7 +63,7 @@ def get_parcelles(departement, ville, parcelles_dir):
 
     return parcelles
 
-def get_parcelles_with_contenance(departement, ville, contenance, parcelles_dir):
+def get_parcelles_with_contenance(departement, ville, contenance, parcelles_dir="./data/json/"):
     parcelles = get_parcelles(departement, ville, parcelles_dir)
     parcelles = [x for x in parcelles['features'] if 'contenance' in x['properties'] and x['properties']['contenance']==contenance]
     return parcelles
@@ -78,11 +78,11 @@ def get_adresse(lon, lat):
     res = requests.get(address)
     return res.json()
 
-def get_adresses(dpt, ville, contenance, parcelles_dir):
+def get_adresses(dpt, ville, contenance, parcelles_dir="./data/json/"):
     parcelles = get_parcelles_with_contenance(dpt, ville, contenance, parcelles_dir)
     points = [get_parcelle_representative_point(x) for x in parcelles]
     adresses = [get_adresse(*p) for p in points]
-    return adresses
+    return adresses, parcelles
 
 def open_adresse_in_maps(adresse):
     address = "https://www.google.fr/maps/place/{adr}"
@@ -92,6 +92,8 @@ def get_label_from_adresse(adresse):
     return adresse['features'][0]['properties']['label']
 
 def do_it_all(departement, ville, contenance, parcelles_dir="./data/json/"):
-    adresses = get_adresses(departement, ville, contenance, parcelles_dir)
+    adresses, parcelles = get_adresses(departement, ville, contenance, parcelles_dir)
     for a in adresses:
         open_adresse_in_maps(get_label_from_adresse(a))
+    
+    return [" ".join([p['properties']['prefixe'],p['properties']['section'],p['properties']['numero']]) for p in parcelles]
