@@ -82,18 +82,27 @@ def get_adresses(dpt, ville, contenance, parcelles_dir="./data/json/"):
     parcelles = get_parcelles_with_contenance(dpt, ville, contenance, parcelles_dir)
     points = [get_parcelle_representative_point(x) for x in parcelles]
     adresses = [get_adresse(*p) for p in points]
-    return adresses, parcelles
+    return adresses, parcelles, points
 
 def open_adresse_in_maps(adresse):
     address = "https://www.google.fr/maps/place/{adr}"
     webbrowser.open(address.format(adr=adresse), new=2)
 
+def open_point_in_maps(point):
+    address = "https://www.google.fr/maps/search/?api=1&query={lat},{long}"
+    address = address.format(lat=point[1],long=point[0])
+    webbrowser.open(address, new=2)
+    return address
+
 def get_label_from_adresse(adresse):
     return adresse['features'][0]['properties']['label']
 
 def do_it_all(departement, ville, contenance, parcelles_dir="./data/json/"):
-    adresses, parcelles = get_adresses(departement, ville, contenance, parcelles_dir)
-    for a in adresses:
-        open_adresse_in_maps(get_label_from_adresse(a))
+    adresses, parcelles, points = get_adresses(departement, ville, contenance, parcelles_dir)
+    for p in points:
+        print(open_point_in_maps(p))
+
+    # for a in adresses:
+    #     open_adresse_in_maps(get_label_from_adresse(a))
     
     return [" ".join([p['properties']['prefixe'],p['properties']['section'],p['properties']['numero']]) for p in parcelles]
