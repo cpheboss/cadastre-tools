@@ -1,4 +1,5 @@
 from pathlib import Path
+from posixpath import normpath
 from shapely.geometry import Polygon
 import os
 import zlib
@@ -65,7 +66,10 @@ def get_parcelles(departement, ville, parcelles_dir="./data/json/"):
 
 def get_parcelles_with_contenance(departement, ville, contenance, parcelles_dir="./data/json/"):
     parcelles = get_parcelles(departement, ville, parcelles_dir)
-    parcelles = [x for x in parcelles['features'] if 'contenance' in x['properties'] and x['properties']['contenance']==contenance]
+    if isinstance(contenance, tuple):
+        parcelles = [x for x in parcelles['features'] if 'contenance' in x['properties'] and x['properties']['contenance']<=contenance[1] and x['properties']['contenance']>=contenance[0]]
+    else:
+        parcelles = [x for x in parcelles['features'] if 'contenance' in x['properties'] and x['properties']['contenance']==contenance]
     return parcelles
 
 def get_parcelle_representative_point(geojson_polygon):
@@ -102,6 +106,7 @@ def do_it_all(departement, ville, contenance, parcelles_dir="./data/json/"):
     for p in points:
         print(open_point_in_maps(p))
 
+    print(f'Found {len(points)} results')
     # for a in adresses:
     #     open_adresse_in_maps(get_label_from_adresse(a))
     
